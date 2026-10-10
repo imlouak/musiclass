@@ -1,0 +1,42 @@
+{
+  "name": "musiclass",
+  "version": "0.1.0",
+  "type": "module",
+  "author": "MusiClass",
+  "private": true,
+  "description": "Retrouvez instantanément vos partitions dans vos classeurs physiques.",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "concurrently -k \"vite\" \"wait-on http://localhost:5173 && electron .\"",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "desktop": "electron .",
+    "dist:win": "npm run build && electron-builder --win nsis",
+    "dist:mac": "npm run build && electron-builder --mac dmg"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "latest",
+    "lucide-react": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "vite": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "concurrently": "latest",
+    "electron": "latest",
+    "electron-builder": "latest",
+    "typescript": "latest",
+    "wait-on": "latest"
+  },
+  "build": {
+    "appId": "fr.musiclass.app",
+    "productName": "MusiClass",
+    "files": ["dist/**/*", "electron/**/*", "package.json"],
+    "directories": { "output": "release" },
+    "win": { "target": "nsis", "artifactName": "MusiClass.exe" },
+    "mac": { "target": "dmg", "artifactName": "MusiClass.dmg", "category": "public.app-category.music" }
+  }
+}

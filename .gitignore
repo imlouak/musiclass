@@ -1,0 +1,10 @@
+node_modules/
+dist/
+release/
+release-*/
+site/
+.superdesign/
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
+*.log
