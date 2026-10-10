@@ -11,6 +11,7 @@ function createWindow() {
     minHeight: 640,
     backgroundColor: '#07111f',
     title: 'MusiClass',
+    icon: path.join(__dirname, '..', 'build', 'icon.png'),
     frame: false,
     titleBarStyle: 'hidden',
     trafficLightPosition: { x: 14, y: 14 },

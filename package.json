@@ -34,8 +34,9 @@
   "build": {
     "appId": "fr.musiclass.app",
     "productName": "MusiClass",
-    "files": ["dist/**/*", "electron/**/*", "package.json"],
+    "files": ["dist/**/*", "electron/**/*", "build/icon.png", "package.json"],
     "directories": { "output": "release" },
+    "icon": "build/icon.png",
     "win": { "target": "nsis", "artifactName": "MusiClass.exe" },
     "mac": { "target": "dmg", "artifactName": "MusiClass.dmg", "category": "public.app-category.music" }
   }

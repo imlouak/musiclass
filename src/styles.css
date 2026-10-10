@@ -49,6 +49,10 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .window-controls button:hover { color: white; background: rgba(255,255,255,.07); }
 .window-controls .window-close:hover { color: white; background: #c42b35; }
 .topbar { height: 58px; padding: 0 28px; display: flex; align-items: center; justify-content: space-between; position: relative; z-index: 20; border-bottom: 0; }
+.language-switcher { display: inline-flex; align-items: center; gap: 2px; padding: 3px; border: 1px solid rgba(255,255,255,.09); border-radius: 9px; background: rgba(255,255,255,.035); }
+.language-switcher button { min-width: 34px; height: 27px; padding: 0 8px; border: 0; border-radius: 6px; color: #777d85; background: transparent; font-size: 10px; font-weight: 650; letter-spacing: .04em; cursor: pointer; transition: 140ms ease; }
+.language-switcher button:hover { color: #d8dadd; }
+.language-switcher button.active { color: #f3f4f6; background: rgba(255,255,255,.1); box-shadow: 0 1px 3px rgba(0,0,0,.24); }
 .brand { border: 0; background: transparent; display: flex; align-items: center; gap: 11px; font-size: 17px; font-weight: 700; letter-spacing: -.02em; cursor: pointer; padding: 7px; border-radius: 10px; }
 .brand-mark { width: 31px; height: 31px; display: grid; place-items: center; border-radius: 4px; color: var(--blue-light); background: rgba(76,155,255,.08); border: 1px solid rgba(76,155,255,.55); }
 
