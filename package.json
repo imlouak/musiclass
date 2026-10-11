@@ -1,6 +1,6 @@
 {
   "name": "musiclass",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "type": "module",
   "author": "MusiClass",
   "private": true,
@@ -48,13 +48,23 @@
       "output": "release"
     },
     "icon": "build/icon.png",
-    "publish": [{ "provider": "github", "owner": "imlouak", "repo": "musiclass", "releaseType": "release" }],
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "imlouak",
+        "repo": "musiclass",
+        "releaseType": "release"
+      }
+    ],
     "win": {
       "target": "nsis",
       "artifactName": "MusiClass.exe"
     },
     "mac": {
-      "target": ["dmg", "zip"],
+      "target": [
+        "dmg",
+        "zip"
+      ],
       "artifactName": "MusiClass.${ext}",
       "category": "public.app-category.music",
       "hardenedRuntime": true,

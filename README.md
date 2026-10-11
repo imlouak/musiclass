@@ -57,13 +57,13 @@ Public macOS releases are signed with a Developer ID Application certificate, us
 - `APPLE_API_KEY_ID`: App Store Connect API key ID
 - `APPLE_API_ISSUER`: App Store Connect API issuer ID
 
-The macOS job stops before packaging when one of these secrets is absent. It also verifies the code signature, Gatekeeper assessment, and stapled notarization ticket before uploading the DMG.
+When these secrets are available, the workflow verifies the code signature, Gatekeeper assessment, and stapled notarization ticket before uploading the DMG. Without them, it publishes an unsigned build and reports a warning; users must then explicitly allow that build through Gatekeeper.
 
 GitHub Actions publishes both installers when a version tag is pushed:
 
 ```bash
-git tag v0.2.0
-git push origin v0.2.0
+git tag v0.2.1
+git push origin v0.2.1
 ```
 
 The release assets use stable names so the download website can always resolve the latest version:
