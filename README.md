@@ -65,3 +65,7 @@ The library is stored locally by Electron. MusiClass does not require an account
 ## Related repository
 
 The download website lives at [imlouak/web-musiclass](https://github.com/imlouak/web-musiclass).
+
+## License
+
+Copyright (c) 2025 Xutron. MusiClass is licensed under the [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License](LICENSE).
