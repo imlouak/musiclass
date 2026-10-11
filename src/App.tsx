@@ -28,7 +28,10 @@ import { LanguageSwitcher, useLanguage } from './i18n'
 import type { Attachment, Binder, Library, Score } from './types'
 
 const STORAGE_KEY = 'musiclass-library-v1'
-const colors = ['#4C9BFF', '#4FD1A1', '#FF7D7D', '#F4B860', '#B794F6', '#87D7E8']
+const colors = [
+  '#4C9BFF', '#87D7E8', '#4FD1A1', '#8BCB6B', '#F4D35E', '#F4B860',
+  '#F28C52', '#FF7D7D', '#E982B5', '#B794F6', '#6674D9', '#7B8798',
+]
 
 type SearchResult = Score & { binderId: string; binderName: string; binderColor: string }
 type DialogState = { kind: 'binder' } | { kind: 'score'; score?: SearchResult } | null
@@ -575,7 +578,20 @@ function BinderDialog({ onClose, onSave }: { onClose: () => void; onSave: (binde
   const { t } = useLanguage()
   const [name, setName] = useState('')
   const [color, setColor] = useState(colors[0])
+  const [hexValue, setHexValue] = useState(colors[0])
+  const [customColorOpen, setCustomColorOpen] = useState(false)
   const nameRef = useRef<HTMLInputElement>(null)
+  const choosePresetColor = (nextColor: string) => {
+    setColor(nextColor)
+    setHexValue(nextColor)
+    setCustomColorOpen(false)
+  }
+  const chooseCustomColor = (nextColor: string) => {
+    const typed = nextColor.trim().toUpperCase()
+    const normalized = typed.startsWith('#') ? typed : `#${typed}`
+    setHexValue(typed)
+    if (/^#[0-9A-F]{6}$/.test(normalized)) setColor(normalized)
+  }
   const handleColorTyping = (event: React.KeyboardEvent<HTMLFormElement>) => {
     const isColorButton = (event.target as HTMLElement).closest('.color-options button')
     if (!isColorButton || event.key.length !== 1 || event.ctrlKey || event.altKey || event.metaKey) return
@@ -589,7 +605,32 @@ function BinderDialog({ onClose, onSave }: { onClose: () => void; onSave: (binde
         <button type="button" className="dialog-close" onClick={onClose}><X size={20} /></button>
         <span className="dialog-icon"><LibraryIcon size={20} /></span><h2>{t('newBinder')}</h2><p>{t('binderNameHelp')}</p>
         <label>{t('binderName')}<input ref={nameRef} value={name} onChange={(event) => setName(event.target.value)} placeholder={t('binderExample')} autoFocus required /></label>
-        <fieldset><legend>{t('binderColor')}</legend><div className="color-options">{colors.map((item) => <button type="button" key={item} className={color === item ? 'chosen' : ''} style={{ background: item }} onClick={() => setColor(item)} aria-label={t('chooseColor', { color: item })}>{color === item && <Check size={16} />}</button>)}</div></fieldset>
+        <fieldset>
+          <legend>{t('binderColor')}</legend>
+          <div className={`color-options ${customColorOpen ? 'custom-open' : ''}`}>
+            {colors.map((item) => (
+              <button type="button" key={item} className={color === item && !customColorOpen ? 'chosen' : ''} style={{ background: item }} onClick={() => choosePresetColor(item)} aria-label={t('chooseColor', { color: item })}>
+                {color === item && !customColorOpen && <Check size={14} />}
+              </button>
+            ))}
+            <button
+              type="button"
+              className={`color-wheel-button ${customColorOpen || !colors.includes(color) ? 'chosen' : ''}`}
+              onClick={() => setCustomColorOpen((open) => !open)}
+              aria-label={t('customColor')}
+              aria-expanded={customColorOpen}
+              aria-controls="custom-color-picker"
+            />
+            <div id="custom-color-picker" className="custom-color-popover" hidden={!customColorOpen}>
+              <input className="custom-color-input" type="color" value={color} onChange={(event) => chooseCustomColor(event.target.value)} aria-label={t('colorWheel')} />
+              <span className="custom-color-preview" style={{ background: color }} aria-hidden="true" />
+              <label className="hex-color-label">
+                <span>{t('hexCode')}</span>
+                <input className="hex-color-input" value={hexValue} maxLength={7} spellCheck={false} onChange={(event) => chooseCustomColor(event.target.value)} onBlur={() => setHexValue(color)} />
+              </label>
+            </div>
+          </div>
+        </fieldset>
         <div className="dialog-actions"><button type="button" className="button button-secondary" onClick={onClose}>{t('cancel')}</button><button className="button button-primary">{t('createBinder')}</button></div>
       </form>
     </div>
