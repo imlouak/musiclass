@@ -1,6 +1,6 @@
 {
   "name": "musiclass",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "type": "module",
   "author": "MusiClass",
   "private": true,
@@ -38,6 +38,13 @@
     "directories": { "output": "release" },
     "icon": "build/icon.png",
     "win": { "target": "nsis", "artifactName": "MusiClass.exe" },
-    "mac": { "target": "dmg", "artifactName": "MusiClass.dmg", "category": "public.app-category.music" }
+    "mac": {
+      "target": "dmg",
+      "artifactName": "MusiClass.dmg",
+      "category": "public.app-category.music",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "notarize": true
+    }
   }
 }

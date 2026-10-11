@@ -44,6 +44,18 @@ npm run dist:mac
 
 Windows packages must be built on Windows. macOS packages must be built on macOS.
 
+### macOS signing
+
+Public macOS releases are signed with a Developer ID Application certificate, use the hardened runtime, and are notarized by Apple. Configure these GitHub Actions secrets before running the release workflow:
+
+- `MACOS_CERTIFICATE_BASE64`: Base64-encoded Developer ID Application `.p12` certificate
+- `MACOS_CERTIFICATE_PASSWORD`: Password used when exporting the certificate
+- `APPLE_API_KEY_BASE64`: Base64-encoded App Store Connect API `.p8` key
+- `APPLE_API_KEY_ID`: App Store Connect API key ID
+- `APPLE_API_ISSUER`: App Store Connect API issuer ID
+
+The macOS job stops before packaging when one of these secrets is absent. It also verifies the code signature, Gatekeeper assessment, and stapled notarization ticket before uploading the DMG.
+
 GitHub Actions publishes both installers when a version tag is pushed:
 
 ```bash
