@@ -62,8 +62,8 @@ When these secrets are available, the workflow verifies the code signature, Gate
 GitHub Actions publishes both installers when a version tag is pushed:
 
 ```bash
-git tag v0.2.1
-git push origin v0.2.1
+git tag v0.2.2
+git push origin v0.2.2
 ```
 
 The release assets use stable names so the download website can always resolve the latest version:

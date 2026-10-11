@@ -143,31 +143,35 @@ export default function App() {
     setFileDropBinderId(binderId)
     setImportNotice(null)
     const existing = new Set(binder.scores.map((score) => normalize(score.title)))
-    const titles: string[] = []
+    const imported: Array<{ title: string; composer: string; page?: number }> = []
     let skipped = 0
     let failed = false
 
     for (const file of Array.from(files)) {
       const result = await window.desktop.importScoreFile(file)
-      if (!result.ok || !result.titles) { failed = true; continue }
-      for (const title of result.titles) {
-        const key = normalize(title)
+      if (!result.ok || !result.scores) { failed = true; continue }
+      for (const score of result.scores) {
+        const key = normalize(score.title)
         if (!key || existing.has(key)) { skipped += 1; continue }
         existing.add(key)
-        titles.push(title.trim())
+        imported.push({ ...score, title: score.title.trim(), composer: score.composer.trim() })
       }
     }
 
-    if (titles.length) {
-      const firstPage = Math.max(0, ...binder.scores.map((score) => score.page)) + 1
-      const importedScores: Score[] = titles.map((title, index) => ({ id: uid(), title, composer: '', instrument: '', page: firstPage + index, notes: '' }))
+    if (imported.length) {
+      let nextPage = Math.max(0, ...binder.scores.map((score) => score.page)) + 1
+      const importedScores: Score[] = imported.map((score) => {
+        const page = score.page ?? nextPage
+        nextPage = Math.max(nextPage, page + 1)
+        return { id: uid(), title: score.title, composer: score.composer, instrument: '', page, notes: '' }
+      })
       updateLibrary((current) => ({ binders: current.binders.map((item) => item.id === binderId ? { ...item, scores: [...item.scores, ...importedScores] } : item) }))
     }
 
-    const summary = titles.length
-      ? t('importSuccess', { count: titles.length, scores: t(titles.length > 1 ? 'scores' : 'score'), skipped })
+    const summary = imported.length
+      ? t('importSuccess', { count: imported.length, scores: t(imported.length > 1 ? 'scores' : 'score'), skipped })
       : failed ? t('importFailed') : t('importNoNewScores')
-    setImportNotice({ kind: titles.length ? 'success' : 'error', message: summary })
+    setImportNotice({ kind: imported.length ? 'success' : 'error', message: summary })
     setFileDropBinderId(null)
   }
 

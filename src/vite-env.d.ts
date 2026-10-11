@@ -6,7 +6,7 @@ interface Window {
     minimize: () => void
     toggleMaximize: () => void
     close: () => void
-    importScoreFile: (file: File) => Promise<{ ok: boolean; fileName?: string; titles?: string[]; error?: string }>
+    importScoreFile: (file: File) => Promise<{ ok: boolean; fileName?: string; scores?: Array<{ title: string; composer: string; page?: number }>; error?: string }>
     pickAttachment: () => Promise<{ ok: boolean; attachment?: import('./types').Attachment | null; error?: string }>
     storeAttachment: (file: File) => Promise<{ ok: boolean; attachment?: import('./types').Attachment; error?: string }>
     openAttachment: (attachment: import('./types').Attachment) => Promise<{ ok: boolean; error?: string }>

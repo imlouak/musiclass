@@ -13,17 +13,46 @@ function normalizeTitle(value) {
     .toLocaleLowerCase('fr')
 }
 
-function titlesFromText(text) {
+function isIgnoredLine(value) {
+  const normalized = normalizeTitle(value).replace(/[.:]+$/, '')
+  return /^(classeur|binder|dossier|folder)(?:\s|$)/.test(normalized)
+    || /^(liste(?: de| des)? partitions?|sheet music list|partitions?|sommaire|index|repertoire|catalogue)$/.test(normalized)
+    || /^(titre|title|auteur|author|compositeur|composer|page|pages)\s*:/.test(normalized)
+}
+
+function parseScoreLine(rawLine) {
+  let value = rawLine.replace(/\s+/g, ' ').trim()
+  if (!value || isIgnoredLine(value)) return null
+
+  value = value.replace(/^[-*\u2022]\s+/, '')
+  const numbered = value.match(/^(\d{1,4})(?:\s*[.):-])?\s+(.+)$/)
+  const page = numbered ? Number(numbered[1]) : undefined
+  if (numbered) value = numbered[2].trim()
+  if (!value || isIgnoredLine(value)) return null
+
+  const parts = value.split(/\s+[-\u2013\u2014]\s+/)
+  const title = parts.shift()?.trim() ?? ''
+  const composer = parts.join(' - ').trim()
+  if (!title || isIgnoredLine(title)) return null
+  return { title, composer, ...(page ? { page } : {}) }
+}
+
+function scoresFromText(text) {
   const seen = new Set()
-  const titles = []
+  const scores = []
   for (const rawLine of text.split(/\r?\n/)) {
-    const title = rawLine.replace(/\s+/g, ' ').trim()
-    const key = normalizeTitle(title)
-    if (!title || seen.has(key)) continue
+    const score = parseScoreLine(rawLine)
+    if (!score) continue
+    const key = normalizeTitle(score.title)
+    if (seen.has(key)) continue
     seen.add(key)
-    titles.push(title)
+    scores.push(score)
   }
-  return titles
+  return scores
+}
+
+function titlesFromText(text) {
+  return scoresFromText(text).map((score) => score.title)
 }
 
 async function extractPdfText(filePath) {
@@ -50,7 +79,7 @@ async function extractTitlesFromFile(filePath) {
   if (!stats.isFile()) throw new Error('NOT_A_FILE')
   if (stats.size > MAX_IMPORT_BYTES) throw new Error('FILE_TOO_LARGE')
   const text = extension === '.pdf' ? await extractPdfText(filePath) : await extractWordText(filePath)
-  return { fileName: path.basename(filePath), titles: titlesFromText(text) }
+  return { fileName: path.basename(filePath), scores: scoresFromText(text) }
 }
 
-module.exports = { IMPORT_EXTENSIONS, MAX_IMPORT_BYTES, extractTitlesFromFile, normalizeTitle, titlesFromText }
+module.exports = { IMPORT_EXTENSIONS, MAX_IMPORT_BYTES, extractTitlesFromFile, normalizeTitle, parseScoreLine, scoresFromText, titlesFromText }
