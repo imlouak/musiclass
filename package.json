@@ -1,6 +1,6 @@
 {
   "name": "musiclass",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "type": "module",
   "author": "MusiClass",
   "private": true,
@@ -11,15 +11,19 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "desktop": "electron .",
+    "test": "node --test electron/*.test.cjs",
     "dist:win": "npm run build && electron-builder --win nsis --publish never",
-    "dist:mac": "npm run build && electron-builder --mac dmg --publish never"
+    "dist:mac": "npm run build && electron-builder --mac dmg zip --publish never"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
+    "electron-updater": "^6.8.10",
     "lucide-react": "latest",
+    "pdf-parse": "^2.4.5",
     "react": "latest",
     "react-dom": "latest",
-    "vite": "latest"
+    "vite": "latest",
+    "word-extractor": "^1.0.4"
   },
   "devDependencies": {
     "@types/node": "latest",
@@ -34,13 +38,24 @@
   "build": {
     "appId": "fr.musiclass.app",
     "productName": "MusiClass",
-    "files": ["dist/**/*", "electron/**/*", "build/icon.png", "package.json"],
-    "directories": { "output": "release" },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "build/icon.png",
+      "package.json"
+    ],
+    "directories": {
+      "output": "release"
+    },
     "icon": "build/icon.png",
-    "win": { "target": "nsis", "artifactName": "MusiClass.exe" },
+    "publish": [{ "provider": "github", "owner": "imlouak", "repo": "musiclass", "releaseType": "release" }],
+    "win": {
+      "target": "nsis",
+      "artifactName": "MusiClass.exe"
+    },
     "mac": {
-      "target": "dmg",
-      "artifactName": "MusiClass.dmg",
+      "target": ["dmg", "zip"],
+      "artifactName": "MusiClass.${ext}",
       "category": "public.app-category.music",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,

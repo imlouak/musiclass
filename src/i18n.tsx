@@ -19,6 +19,9 @@ const messages = {
     binderNameHelp: 'Utilisez le même nom que sur votre classeur physique.', binderName: 'Nom du classeur', binderExample: 'Ex. Classeur bleu', binderColor: 'Couleur du classeur', chooseColor: 'Choisir la couleur {color}', cancel: 'Annuler',
     editScore: 'Modifier la partition', inBinder: 'Dans {binder}', title: 'Titre', required: 'obligatoire', titleExample: 'Ex. Clair de lune', author: 'Auteur', optional: 'optionnel', authorExample: 'Ex. Claude Debussy', save: 'Enregistrer',
     changeBinder: 'Changer de classeur', deleteScoreTitle: 'Supprimer cette partition ?', deleteScoreMessage: '« {title} » sera retirée de {binder}.', deleteScore: 'Supprimer la partition', deleteBinderTitle: 'Supprimer {binder} ?', deleteBinderMessage: 'Le classeur et ses {count} {scores} seront supprimés.', language: 'Langue',
+    dropList: 'Déposer une liste de partitions', dropListHelp: 'PDF ou Word, une partition par ligne', importSuccess: '{count} {scores} ajoutée(s), {skipped} doublon(s) ignoré(s).', importFailed: 'Impossible de lire ce fichier. Utilisez un PDF ou un document Word valide.', importNoNewScores: 'Aucune nouvelle partition : toutes les lignes existent déjà.',
+    attachment: 'Pièce jointe', chooseAttachment: 'Choisir un fichier', attachmentHelp: 'PDF ou Word, facultatif', attachmentFailed: 'Impossible de joindre ce fichier.', openAttachment: 'Ouvrir la pièce jointe', removeAttachment: 'Retirer la pièce jointe', open: 'Ouvrir',
+    updateReady: 'Mise à jour prête', updateDownloading: 'Téléchargement de la mise à jour', restart: 'Redémarrer',
   },
   en: {
     manageScores: 'Manage my sheet music', addScore: 'Add sheet music', search: 'Search',
@@ -36,6 +39,9 @@ const messages = {
     binderNameHelp: 'Use the same name as the physical binder.', binderName: 'Binder name', binderExample: 'E.g. Blue binder', binderColor: 'Binder color', chooseColor: 'Choose color {color}', cancel: 'Cancel',
     editScore: 'Edit sheet music', inBinder: 'In {binder}', title: 'Title', required: 'required', titleExample: 'E.g. Clair de lune', author: 'Author', optional: 'optional', authorExample: 'E.g. Claude Debussy', save: 'Save',
     changeBinder: 'Move to binder', deleteScoreTitle: 'Delete this score?', deleteScoreMessage: '“{title}” will be removed from {binder}.', deleteScore: 'Delete score', deleteBinderTitle: 'Delete {binder}?', deleteBinderMessage: 'The binder and its {count} {scores} will be deleted.', language: 'Language',
+    dropList: 'Drop a sheet-music list', dropListHelp: 'PDF or Word, one score per line', importSuccess: '{count} {scores} added, {skipped} duplicate(s) skipped.', importFailed: 'This file could not be read. Use a valid PDF or Word document.', importNoNewScores: 'Nothing new was added: every line already exists.',
+    attachment: 'Attachment', chooseAttachment: 'Choose a file', attachmentHelp: 'PDF or Word, optional', attachmentFailed: 'This file could not be attached.', openAttachment: 'Open attachment', removeAttachment: 'Remove attachment', open: 'Open',
+    updateReady: 'Update ready', updateDownloading: 'Downloading update', restart: 'Restart',
   },
 } as const
 

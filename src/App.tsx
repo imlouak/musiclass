@@ -4,6 +4,8 @@ import {
   BookOpen,
   Check,
   ChevronRight,
+  ExternalLink,
+  FilePlus2,
   FileMusic,
   GripVertical,
   Library as LibraryIcon,
@@ -11,17 +13,19 @@ import {
   Maximize2,
   Minus,
   MoreHorizontal,
+  Paperclip,
   Pencil,
   Plus,
   Search,
   Settings2,
   Square,
   Trash2,
+  Upload,
   X,
 } from 'lucide-react'
 import { starterLibrary } from './data'
 import { LanguageSwitcher, useLanguage } from './i18n'
-import type { Binder, Library, Score } from './types'
+import type { Attachment, Binder, Library, Score } from './types'
 
 const STORAGE_KEY = 'musiclass-library-v1'
 const colors = ['#4C9BFF', '#4FD1A1', '#FF7D7D', '#F4B860', '#B794F6', '#87D7E8']
@@ -33,10 +37,14 @@ type ContextMenuPayload =
   | { kind: 'binder'; binder: Binder }
 type ContextMenuState = (ContextMenuPayload & { x: number; y: number }) | null
 type ConfirmState = { title: string; message: string; confirmLabel: string; onConfirm: () => void } | null
+type ImportNotice = { kind: 'success' | 'error'; message: string } | null
+type UpdateStatus = { status: 'checking' | 'downloading' | 'current' | 'ready' | 'error'; version?: string; percent?: number }
 
 const uid = () => crypto.randomUUID()
 const normalize = (value: string) =>
-  value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('fr')
+  value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim().toLocaleLowerCase('fr')
+
+const isFileDrag = (event: React.DragEvent) => event.dataTransfer.types.includes('Files')
 
 function loadLibrary(): Library {
   try {
@@ -63,9 +71,14 @@ export default function App() {
   const [draggedScore, setDraggedScore] = useState<{ binderId: string; scoreId: string } | null>(null)
   const [dropTarget, setDropTarget] = useState<string | null>(null)
   const [dropBinderId, setDropBinderId] = useState<string | null>(null)
+  const [fileDropBinderId, setFileDropBinderId] = useState<string | null>(null)
+  const [importNotice, setImportNotice] = useState<ImportNotice>(null)
+  const [updateStatus, setUpdateStatus] = useState<UpdateStatus>({ status: 'current' })
   const searchRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => localStorage.setItem(STORAGE_KEY, JSON.stringify(library)), [library])
+
+  useEffect(() => window.desktop?.onUpdateStatus(setUpdateStatus), [])
 
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
@@ -118,6 +131,45 @@ export default function App() {
   const selectedBinder = library.binders.find((binder) => binder.id === selectedBinderId) ?? library.binders[0]
 
   const updateLibrary = (updater: (current: Library) => Library) => setLibrary((current) => updater(current))
+
+  const removeStoredAttachment = (attachment?: Attachment) => {
+    if (attachment) void window.desktop?.removeAttachment(attachment)
+  }
+
+  const importFilesIntoBinder = async (binderId: string, files: FileList | File[]) => {
+    const binder = library.binders.find((item) => item.id === binderId)
+    if (!binder || !window.desktop) return
+    setSelectedBinderId(binderId)
+    setFileDropBinderId(binderId)
+    setImportNotice(null)
+    const existing = new Set(binder.scores.map((score) => normalize(score.title)))
+    const titles: string[] = []
+    let skipped = 0
+    let failed = false
+
+    for (const file of Array.from(files)) {
+      const result = await window.desktop.importScoreFile(file)
+      if (!result.ok || !result.titles) { failed = true; continue }
+      for (const title of result.titles) {
+        const key = normalize(title)
+        if (!key || existing.has(key)) { skipped += 1; continue }
+        existing.add(key)
+        titles.push(title.trim())
+      }
+    }
+
+    if (titles.length) {
+      const firstPage = Math.max(0, ...binder.scores.map((score) => score.page)) + 1
+      const importedScores: Score[] = titles.map((title, index) => ({ id: uid(), title, composer: '', instrument: '', page: firstPage + index, notes: '' }))
+      updateLibrary((current) => ({ binders: current.binders.map((item) => item.id === binderId ? { ...item, scores: [...item.scores, ...importedScores] } : item) }))
+    }
+
+    const summary = titles.length
+      ? t('importSuccess', { count: titles.length, scores: t(titles.length > 1 ? 'scores' : 'score'), skipped })
+      : failed ? t('importFailed') : t('importNoNewScores')
+    setImportNotice({ kind: titles.length ? 'success' : 'error', message: summary })
+    setFileDropBinderId(null)
+  }
 
   const openManage = (binderId?: string) => {
     if (binderId) setSelectedBinderId(binderId)
@@ -200,6 +252,7 @@ export default function App() {
         instrument: score.instrument,
         page: score.page,
         notes: score.notes,
+        attachment: score.attachment,
       })
       return { binders }
     })
@@ -213,9 +266,10 @@ export default function App() {
       title: t('deleteScoreTitle'),
       message: t('deleteScoreMessage', { title: score.title, binder: score.binderName }),
       confirmLabel: t('deleteScore'),
-      onConfirm: () => updateLibrary((current) => ({
-        binders: current.binders.map((binder) => ({ ...binder, scores: binder.scores.filter((item) => item.id !== score.id) })),
-      })),
+      onConfirm: () => {
+        removeStoredAttachment(score.attachment)
+        updateLibrary((current) => ({ binders: current.binders.map((binder) => ({ ...binder, scores: binder.scores.filter((item) => item.id !== score.id) })) }))
+      },
     })
   }
 
@@ -226,6 +280,7 @@ export default function App() {
       message: t('deleteBinderMessage', { count: binder.scores.length, scores: t(binder.scores.length > 1 ? 'scores' : 'score') }),
       confirmLabel: t('deleteBinder'),
       onConfirm: () => {
+        binder.scores.forEach((score) => removeStoredAttachment(score.attachment))
         updateLibrary((current) => ({ binders: current.binders.filter((item) => item.id !== binder.id) }))
         setSelectedBinderId(library.binders.find((item) => item.id !== binder.id)?.id ?? '')
       },
@@ -245,7 +300,7 @@ export default function App() {
     <div className="app-shell">
       <WindowBar />
       <header className="topbar">
-        <LanguageSwitcher />
+        <div className="topbar-left"><LanguageSwitcher /><UpdateIndicator state={updateStatus} /></div>
         {view === 'home' ? (
           <button className="button button-secondary" onClick={() => openManage()}>
             <Settings2 size={17} /> {allScores.length ? t('manageScores') : t('addScore')}
@@ -348,15 +403,19 @@ export default function App() {
                     draggable
                     onDragStart={() => setDraggedBinderId(binder.id)}
                     onDragEnd={() => { setDraggedBinderId(null); setDropTarget(null); setDropBinderId(null) }}
-                    onDragEnter={() => setDropBinderId(binder.id)}
-                    onDragOver={(event) => event.preventDefault()}
-                    onDrop={() => draggedScore ? moveScore(binder.id) : reorderBinders(binder.id)}
+                    onDragEnter={(event) => isFileDrag(event) ? setFileDropBinderId(binder.id) : setDropBinderId(binder.id)}
+                    onDragOver={(event) => { event.preventDefault(); if (isFileDrag(event)) setFileDropBinderId(binder.id) }}
+                    onDrop={(event) => {
+                      event.preventDefault()
+                      if (isFileDrag(event)) { void importFilesIntoBinder(binder.id, event.dataTransfer.files); return }
+                      draggedScore ? moveScore(binder.id) : reorderBinders(binder.id)
+                    }}
                     onClick={() => setSelectedBinderId(binder.id)}
                     onContextMenu={(event) => openContextMenu(event, { kind: 'binder', binder })}
                     onKeyDown={(event) => {
                       if (event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10')) openContextMenu(event, { kind: 'binder', binder })
                     }}
-                    className={`binder-item ${selectedBinder?.id === binder.id ? 'selected' : ''} ${draggedBinderId === binder.id ? 'is-dragging' : ''} ${dropBinderId === binder.id && draggedBinderId !== binder.id ? 'drop-target' : ''} ${draggedScore && draggedScore.binderId !== binder.id ? 'accepts-score' : ''}`}
+                    className={`binder-item ${selectedBinder?.id === binder.id ? 'selected' : ''} ${draggedBinderId === binder.id ? 'is-dragging' : ''} ${dropBinderId === binder.id && draggedBinderId !== binder.id ? 'drop-target' : ''} ${fileDropBinderId === binder.id ? 'file-drop-target' : ''} ${draggedScore && draggedScore.binderId !== binder.id ? 'accepts-score' : ''}`}
                   >
                     <GripVertical size={16} className="grip" />
                     <span className="binder-spine" style={{ background: binder.color }} />
@@ -368,13 +427,29 @@ export default function App() {
               <button className="add-binder" onClick={() => setDialog({ kind: 'binder' })}><Plus size={17} /> {t('newBinder')}</button>
             </aside>
 
-            <section className={`scores-panel ${draggedScore ? 'is-receiving' : ''}`} onDragOver={(event) => event.preventDefault()} onDrop={() => selectedBinder && moveScore(selectedBinder.id)}>
+            <section
+              className={`scores-panel ${draggedScore ? 'is-receiving' : ''} ${selectedBinder && fileDropBinderId === selectedBinder.id ? 'is-file-receiving' : ''}`}
+              onDragOver={(event) => { event.preventDefault(); if (selectedBinder && isFileDrag(event)) setFileDropBinderId(selectedBinder.id) }}
+              onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setFileDropBinderId(null) }}
+              onDrop={(event) => {
+                event.preventDefault()
+                if (!selectedBinder) return
+                if (isFileDrag(event)) { void importFilesIntoBinder(selectedBinder.id, event.dataTransfer.files); return }
+                moveScore(selectedBinder.id)
+              }}
+            >
               {selectedBinder ? (
                 <>
                   <div className="scores-header">
                     <div className="binder-title"><span style={{ background: selectedBinder.color }} /><div><h2>{selectedBinder.name}</h2><p>{selectedBinder.scores.length} {t(selectedBinder.scores.length > 1 ? 'scores' : 'score')}</p></div></div>
                     <button className="icon-button danger" onClick={() => requestDeleteBinder(selectedBinder)} title={t('deleteBinder')}><Trash2 size={18} /></button>
                   </div>
+                  <label className="import-zone">
+                    <Upload size={17} />
+                    <span><strong>{t('dropList')}</strong><small>{t('dropListHelp')}</small></span>
+                    <input type="file" accept=".pdf,.doc,.docx" multiple onChange={(event) => { if (event.target.files?.length) void importFilesIntoBinder(selectedBinder.id, event.target.files); event.currentTarget.value = '' }} />
+                  </label>
+                  {importNotice && <div className={`import-notice ${importNotice.kind}`}><FilePlus2 size={15} />{importNotice.message}<button onClick={() => setImportNotice(null)} aria-label={t('close')}><X size={14} /></button></div>}
                   <div className="score-list">
                     {selectedBinder.scores.map((score, index) => {
                       const complete = { ...score, binderId: selectedBinder.id, binderName: selectedBinder.name, binderColor: selectedBinder.color }
@@ -385,9 +460,14 @@ export default function App() {
                           draggable
                           onDragStart={() => setDraggedScore({ binderId: selectedBinder.id, scoreId: score.id })}
                           onDragEnd={() => { setDraggedScore(null); setDropTarget(null); setDropBinderId(null) }}
-                          onDragEnter={() => draggedScore && setDropTarget(score.id)}
+                          onDragEnter={(event) => { if (!isFileDrag(event) && draggedScore) setDropTarget(score.id) }}
                           onDragOver={(event) => event.preventDefault()}
-                          onDrop={(event) => { event.stopPropagation(); moveScore(selectedBinder.id, score.id) }}
+                          onDrop={(event) => {
+                            event.stopPropagation()
+                            event.preventDefault()
+                            if (isFileDrag(event)) { void importFilesIntoBinder(selectedBinder.id, event.dataTransfer.files); return }
+                            moveScore(selectedBinder.id, score.id)
+                          }}
                           onContextMenu={(event) => openContextMenu(event, { kind: 'score', score: complete })}
                           onKeyDown={(event) => {
                             if (event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10')) openContextMenu(event, { kind: 'score', score: complete })
@@ -399,6 +479,7 @@ export default function App() {
                           <span className="score-icon"><FileMusic size={19} /></span>
                           <span className="score-main"><strong>{score.title}</strong><small>{score.composer || t('unknownComposer')}{score.instrument ? ` · ${score.instrument}` : ''}</small></span>
                           <span className="page-badge">{t('page')} <strong>{score.page}</strong></span>
+                          {score.attachment && <button className="icon-button attachment-button" onClick={() => void window.desktop?.openAttachment(score.attachment!)} title={t('openAttachment')}><Paperclip size={16} /></button>}
                           <button className="icon-button" onClick={() => setDialog({ kind: 'score', score: complete })} title={t('edit')}><Pencil size={17} /></button>
                           <button className="icon-button danger" onClick={() => requestDeleteScore(complete)} title={t('delete')}><Trash2 size={17} /></button>
                         </article>
@@ -420,6 +501,7 @@ export default function App() {
       {selectedResult && <ResultCard result={selectedResult} onClose={() => setSelectedResult(null)} onEdit={() => openManage(selectedResult.binderId)} />}
       {dialog?.kind === 'binder' && <BinderDialog onClose={() => setDialog(null)} onSave={(binder) => { updateLibrary((current) => ({ binders: [...current.binders, binder] })); setSelectedBinderId(binder.id); setDialog(null) }} />}
       {dialog?.kind === 'score' && selectedBinder && <ScoreDialog binder={selectedBinder} score={dialog.score} onClose={() => setDialog(null)} onSave={(score) => {
+        if (dialog.score?.attachment && dialog.score.attachment.id !== score.attachment?.id) removeStoredAttachment(dialog.score.attachment)
         updateLibrary((current) => ({ binders: current.binders.map((binder) => {
           const without = binder.scores.filter((item) => item.id !== score.id)
           return binder.id === selectedBinder.id ? { ...binder, scores: [...without, score] } : { ...binder, scores: without }
@@ -448,6 +530,13 @@ function WindowBar() {
   )
 }
 
+function UpdateIndicator({ state }: { state: UpdateStatus }) {
+  const { t } = useLanguage()
+  if (!['downloading', 'ready'].includes(state.status)) return null
+  if (state.status === 'ready') return <button className="update-indicator ready" onClick={() => window.desktop?.installUpdate()}>{t('updateReady')} <span>{t('restart')}</span></button>
+  return <span className="update-indicator"><i />{t('updateDownloading')}{typeof state.percent === 'number' ? ` ${state.percent}%` : ''}</span>
+}
+
 function Location({ binder }: { binder: Pick<SearchResult, 'binderName' | 'binderColor' | 'page'> }) {
   const { t } = useLanguage()
   return <span className="location"><i style={{ background: binder.binderColor }} />{binder.binderName}<b>·</b> {t('page')} {binder.page}</span>
@@ -469,7 +558,10 @@ function ResultCard({ result, onClose, onEdit }: { result: SearchResult; onClose
           <div className="big-page"><span>{t('page').toUpperCase()}</span><b>{result.page}</b></div>
         </div>
         {result.notes && <div className="result-notes"><MoreHorizontal size={18} /> {result.notes}</div>}
-        <div className="dialog-actions"><button className="button button-secondary" onClick={onEdit}><Pencil size={17} /> {t('edit')}</button><button className="button button-primary" onClick={onClose}>{t('foundIt')}</button></div>
+        <div className="dialog-actions">
+          {result.attachment && <button className="button button-secondary" onClick={() => void window.desktop?.openAttachment(result.attachment!)}><ExternalLink size={17} /> {t('openAttachment')}</button>}
+          <button className="button button-secondary" onClick={onEdit}><Pencil size={17} /> {t('edit')}</button><button className="button button-primary" onClick={onClose}>{t('foundIt')}</button>
+        </div>
       </section>
     </div>
   )
@@ -504,15 +596,53 @@ function ScoreDialog({ binder, score, onClose, onSave }: { binder: Binder; score
   const { t } = useLanguage()
   const [title, setTitle] = useState(score?.title ?? '')
   const [composer, setComposer] = useState(score?.composer ?? '')
+  const [attachment, setAttachment] = useState<Attachment | undefined>(score?.attachment)
+  const [attachmentError, setAttachmentError] = useState('')
   const nextPage = Math.max(0, ...binder.scores.map((item) => item.page)) + 1
+
+  const discardTemporaryAttachment = (item?: Attachment) => {
+    if (item && item.id !== score?.attachment?.id) void window.desktop?.removeAttachment(item)
+  }
+  const setNewAttachment = (item: Attachment) => {
+    discardTemporaryAttachment(attachment)
+    setAttachment(item)
+    setAttachmentError('')
+  }
+  const chooseAttachment = async () => {
+    const result = await window.desktop?.pickAttachment()
+    if (!result || !result.ok) { setAttachmentError(t('attachmentFailed')); return }
+    if (result.attachment) setNewAttachment(result.attachment)
+  }
+  const dropAttachment = async (file: File) => {
+    const result = await window.desktop?.storeAttachment(file)
+    if (!result?.ok || !result.attachment) { setAttachmentError(t('attachmentFailed')); return }
+    setNewAttachment(result.attachment)
+  }
+  const closeDialog = () => {
+    discardTemporaryAttachment(attachment)
+    onClose()
+  }
   return (
-    <div className="dialog-backdrop" onMouseDown={onClose}>
-      <form className="form-dialog compact-form" onMouseDown={(event) => event.stopPropagation()} onSubmit={(event) => { event.preventDefault(); onSave({ id: score?.id ?? uid(), title: title.trim(), composer: composer.trim(), instrument: score?.instrument ?? '', page: score?.page ?? nextPage, notes: score?.notes ?? '' }) }}>
-        <button type="button" className="dialog-close" onClick={onClose}><X size={20} /></button>
+    <div className="dialog-backdrop" onMouseDown={closeDialog}>
+      <form className="form-dialog compact-form" onMouseDown={(event) => event.stopPropagation()} onSubmit={(event) => { event.preventDefault(); onSave({ id: score?.id ?? uid(), title: title.trim(), composer: composer.trim(), instrument: score?.instrument ?? '', page: score?.page ?? nextPage, notes: score?.notes ?? '', attachment }) }}>
+        <button type="button" className="dialog-close" onClick={closeDialog}><X size={20} /></button>
         <span className="dialog-icon"><FileMusic size={20} /></span><h2>{t(score ? 'editScore' : 'addScore')}</h2><p>{t('inBinder', { binder: binder.name })}</p>
         <label>{t('title')} <span className="required">{t('required')}</span><input value={title} onChange={(event) => setTitle(event.target.value)} placeholder={t('titleExample')} autoFocus required /></label>
         <label>{t('author')} <span className="optional">{t('optional')}</span><input value={composer} onChange={(event) => setComposer(event.target.value)} placeholder={t('authorExample')} /></label>
-        <div className="dialog-actions"><button type="button" className="button button-secondary" onClick={onClose}>{t('cancel')}</button><button className="button button-primary">{t(score ? 'save' : 'addScore')}</button></div>
+        <div
+          className={`attachment-field ${attachment ? 'has-file' : ''}`}
+          onDragOver={(event) => { if (isFileDrag(event)) event.preventDefault() }}
+          onDrop={(event) => { event.preventDefault(); const file = event.dataTransfer.files[0]; if (file) void dropAttachment(file) }}
+        >
+          <div className="attachment-heading"><span>{t('attachment')} <small>{t('optional')}</small></span>{attachment && <button type="button" onClick={() => void window.desktop?.openAttachment(attachment)}><ExternalLink size={14} />{t('open')}</button>}</div>
+          {attachment ? (
+            <div className="attachment-file"><Paperclip size={17} /><span title={attachment.name}>{attachment.name}</span><button type="button" onClick={() => { discardTemporaryAttachment(attachment); setAttachment(undefined) }} aria-label={t('removeAttachment')}><X size={15} /></button></div>
+          ) : (
+            <button type="button" className="attachment-picker" onClick={() => void chooseAttachment()}><Upload size={17} /><span><strong>{t('chooseAttachment')}</strong><small>{t('attachmentHelp')}</small></span></button>
+          )}
+          {attachmentError && <p className="field-error">{attachmentError}</p>}
+        </div>
+        <div className="dialog-actions"><button type="button" className="button button-secondary" onClick={closeDialog}>{t('cancel')}</button><button className="button button-primary">{t(score ? 'save' : 'addScore')}</button></div>
       </form>
     </div>
   )

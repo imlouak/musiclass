@@ -19,11 +19,19 @@ jobs:
         include:
           - os: windows-latest
             command: npm run dist:win
-            asset: release/MusiClass.exe
+            assets: |
+              release/MusiClass.exe
+              release/MusiClass.exe.blockmap
+              release/latest.yml
             artifact: musiclass-windows
           - os: macos-latest
             command: npm run dist:mac
-            asset: release/MusiClass.dmg
+            assets: |
+              release/MusiClass.dmg
+              release/MusiClass.dmg.blockmap
+              release/MusiClass.zip
+              release/MusiClass.zip.blockmap
+              release/latest-mac.yml
             artifact: musiclass-macos
     runs-on: ${{ matrix.os }}
     steps:
@@ -82,7 +90,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
-          path: ${{ matrix.asset }}
+          path: ${{ matrix.assets }}
           if-no-files-found: error
 
   release:
@@ -98,4 +106,4 @@ jobs:
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" release-assets/MusiClass.exe release-assets/MusiClass.dmg --repo "$GITHUB_REPOSITORY" --generate-notes --title "MusiClass $GITHUB_REF_NAME"
+        run: gh release create "$GITHUB_REF_NAME" release-assets/* --repo "$GITHUB_REPOSITORY" --generate-notes --title "MusiClass $GITHUB_REF_NAME"

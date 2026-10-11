@@ -1,3 +1,9 @@
+export type Attachment = {
+  id: string
+  name: string
+  extension: '.pdf' | '.doc' | '.docx'
+}
+
 export type Score = {
   id: string
   title: string
@@ -5,6 +11,7 @@ export type Score = {
   instrument: string
   page: number
   notes: string
+  attachment?: Attachment
 }
 
 export type Binder = {

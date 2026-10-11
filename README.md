@@ -15,8 +15,11 @@ MusiClass records where each score is stored, including its binder and page. Sea
 - Fast search by title, composer, instrument, or binder
 - Physical binder and page location for every score
 - Drag and drop ordering for binders and scores
+- PDF and Word list import, with one score per non-empty line and duplicate filtering
+- Optional PDF or Word attachments that open in the computer's default application
 - Keyboard navigation and native context menus
 - French and English interface with automatic locale detection
+- Automatic updates from GitHub Releases
 - Local storage with no account or required cloud service
 - Custom desktop window for Windows and macOS
 
@@ -59,8 +62,8 @@ The macOS job stops before packaging when one of these secrets is absent. It als
 GitHub Actions publishes both installers when a version tag is pushed:
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.2.0
+git push origin v0.2.0
 ```
 
 The release assets use stable names so the download website can always resolve the latest version:
@@ -70,9 +73,11 @@ MusiClass.exe
 MusiClass.dmg
 ```
 
+The release also contains a macOS ZIP used internally by the updater. MusiClass checks GitHub Releases after launch and periodically while it is open. Update metadata and blockmaps are published beside each installer. The first upgrade from a build that predates version 0.2.0 must be installed manually.
+
 ## Data and privacy
 
-The library is stored locally by Electron. MusiClass does not require an account, analytics, or a remote database.
+The library and optional attachments are stored locally by Electron. MusiClass does not require an account, analytics, or a remote database.
 
 ## Related repository
 
