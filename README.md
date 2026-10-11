@@ -68,4 +68,4 @@ The download website lives at [imlouak/web-musiclass](https://github.com/imlouak
 
 ## License
 
-Copyright (c) 2025 Xutron. MusiClass is licensed under the [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License](LICENSE).
+Copyright (c) 2026 Xutron. MusiClass is licensed under the [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License](LICENSE).
